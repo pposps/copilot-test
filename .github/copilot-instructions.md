@@ -96,9 +96,9 @@ Each feature MUST contain the following components:
 - **Access Modifier**: `internal`
 - **Purpose**: Handles data persistence for the feature
 
-#### 5. Installer (Internal)
+#### 5. Installer (Public)
 - **Name**: `[FeatureName]Installer` (e.g., `OrdersInstaller`)
-- **Access Modifier**: `internal` class with `public` extension method
+- **Access Modifier**: `public` class with `public` extension method
 - **Extension Method**: `Add[FeatureName](this IServiceCollection services, IConfiguration configuration)`
 - **Purpose**: Registers all feature interfaces and implementations with dependency injection
 - **Parameters**:
@@ -106,7 +106,7 @@ Each feature MUST contain the following components:
   - `IConfiguration configuration` - for accessing configuration (e.g., database connection strings)
 - **Example**:
   ```csharp
-  internal static class OrdersInstaller
+  public static class OrdersInstaller
   {
       public static IServiceCollection AddOrders(
           this IServiceCollection services,
@@ -127,9 +127,9 @@ Each feature MUST contain the following components:
 
 ### Access Modifier Rules
 
-- **Public**: Only controllers (they need to be discovered by the API)
-- **Internal**: All other components (services, repositories, aggregate roots, installers)
-  - Exception: Extension methods in installer classes must be `public`
+- **Public**: Controllers and Installer classes (controllers need to be discovered by the API, installers need to be accessible from the main API project)
+- **Internal**: All other components (services, repositories, aggregate roots)
+  - Note: Extension methods in installer classes are also `public`
 
 ## Development Principles
 
@@ -218,7 +218,7 @@ src/Features/Orders/CopilotTest.Orders/
 ├── Order.cs                          # internal (aggregate root)
 ├── IOrdersRepository.cs             # internal
 ├── OrdersRepository.cs              # internal
-└── OrdersInstaller.cs               # internal (with public extension method)
+└── OrdersInstaller.cs               # public
 ```
 
 ## Summary
