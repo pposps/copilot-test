@@ -1,0 +1,6 @@
+@CopilotTest.WebApi_HostAddress = http://localhost:5156
+
+GET {{CopilotTest.WebApi_HostAddress}}/health
+Accept: application/json
+
+###
