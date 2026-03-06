@@ -239,3 +239,6 @@ When working on this codebase, always consider:
 - Does this follow the established patterns?
 - Is this testable?
 - Does this maintain the bounded context boundaries?
+
+## Language
+No matter in which language you're receiving instructions - always use English language in all text.
