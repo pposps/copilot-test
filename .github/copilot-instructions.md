@@ -202,9 +202,11 @@ To integrate a new feature into `CopilotTest.WebApi`:
 
 - Write unit tests for domain logic
 - Write integration tests for controllers and repositories
+- Write end-to-end (e2e) tests for complete feature workflows
 - Follow AAA pattern (Arrange, Act, Assert)
 - Use meaningful test names that describe the scenario
-- Mock external dependencies appropriately
+- Mock external dependencies appropriately in unit tests
+- Use real dependencies in e2e tests to validate entire feature flows
 
 ## Example Feature Structure
 
