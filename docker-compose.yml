@@ -13,6 +13,7 @@ services:
       POSTGRES_DB: copilottestdb
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U copilottest -d copilottestdb"]
       interval: 10s
