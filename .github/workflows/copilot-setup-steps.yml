@@ -9,21 +9,6 @@ jobs:
   setup-environment:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: copilottest
-          POSTGRES_PASSWORD: copilottest
-          POSTGRES_DB: copilottestdb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U copilottest -d copilottestdb"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,11 +18,18 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Verify PostgreSQL connection
+      - name: Start PostgreSQL with docker-compose
         run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-          PGPASSWORD=copilottest psql -h localhost -U copilottest -d copilottestdb -c "SELECT version();"
+          docker-compose up -d postgres
+          docker-compose ps
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          timeout 60 bash -c 'until docker-compose exec -T postgres pg_isready -U copilottest -d copilottestdb; do sleep 2; done'
+
+      - name: Run database initialization
+        run: |
+          docker-compose exec -T postgres psql -U copilottest -d copilottestdb -c "SELECT * FROM health;"
 
       - name: Restore dependencies
         run: dotnet restore
@@ -54,3 +46,7 @@ jobs:
         run: |
           echo "PostgreSQL database is available for Copilot agents"
           echo "Connection string: Host=localhost;Port=5432;Database=copilottestdb;Username=copilottest;Password=copilottest"
+
+      - name: Cleanup
+        if: always()
+        run: docker-compose down -v
