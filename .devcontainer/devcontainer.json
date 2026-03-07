@@ -1,12 +1,41 @@
 {
   "name": "CopilotTest Development Environment",
-  "service": "app",
-  "workspaceFolder": "/workspace",
-  "shutdownAction": "stopCompose",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {
       "version": "latest"
     }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "forwardPorts": [5432, 5000, 5001],
+  "portsAttributes": {
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "notify"
+    },
+    "5000": {
+      "label": "HTTP",
+      "onAutoForward": "notify"
+    },
+    "5001": {
+      "label": "HTTPS",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "dotnet restore",
+  "remoteEnv": {
+    "ConnectionStrings__DefaultConnection": "Host=postgres;Port=5432;Database=copilottestdb;Username=copilottest;Password=copilottest"
   },
   "remoteUser": "root"
 }
