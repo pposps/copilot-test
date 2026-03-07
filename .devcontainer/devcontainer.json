@@ -1,15 +1,10 @@
 {
   "name": "CopilotTest Development Environment",
   "dockerComposeFile": "../docker-compose.yml",
-  "service": "postgres",
+  "service": "app",
   "workspaceFolder": "/workspace",
-  "runServices": ["postgres"],
   "shutdownAction": "stopCompose",
   "features": {
-    "ghcr.io/devcontainers/features/dotnet:2": {
-      "version": "10.0",
-      "installUsingApt": false
-    },
     "ghcr.io/devcontainers/features/git:1": {
       "version": "latest"
     }
