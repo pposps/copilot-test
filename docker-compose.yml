@@ -1,0 +1,34 @@
+services:
+  app:
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    volumes:
+      - .:/workspace:cached
+    command: sleep infinity
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=copilottestdb;Username=copilottest;Password=copilottest"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: copilot-test-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: copilottest
+      POSTGRES_PASSWORD: copilottest
+      POSTGRES_DB: copilottestdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U copilottest -d copilottestdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+    driver: local
