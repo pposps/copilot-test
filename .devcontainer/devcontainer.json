@@ -1,5 +1,12 @@
 {
   "name": "CopilotTest Development Environment",
-  
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest"
+    }
+  },
   "remoteUser": "root"
 }
