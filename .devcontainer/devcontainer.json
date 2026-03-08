@@ -4,9 +4,6 @@
   "service": "app",
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
-  "features": {
-    "ghcr.io/devcontainers/features/postgresql-client:1": {}
-  },
   "customizations": {
     "vscode": {
       "extensions": [
