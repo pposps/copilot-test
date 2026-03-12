@@ -3,4 +3,8 @@
     <Project Path="src/CopilotTest.WebApi.HealthTests/CopilotTest.WebApi.HealthTests.csproj" />
     <Project Path="src/CopilotTest.WebApi/CopilotTest.WebApi.csproj" />
   </Folder>
+  <Folder Name="/src/Features/" />
+  <Folder Name="/src/Features/Orders/">
+    <Project Path="src/Features/Orders/CopilotTest.Orders/CopilotTest.Orders.csproj" />
+  </Folder>
 </Solution>
