@@ -1,6 +1,6 @@
 namespace CopilotTest.WebApi;
 
-public class Health
+internal class Health
 {
     public int Id { get; set; }
     public string Status { get; set; } = string.Empty;
