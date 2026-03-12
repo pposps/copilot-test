@@ -81,7 +81,7 @@ Each feature MUST contain the following components:
 #### 2. Feature Service (Internal)
 - **Interface**: `I[FeatureName]` (e.g., `IOrders`)
 - **Implementation**: `[FeatureName]` (e.g., `Orders`)
-- **Access Modifier**: `internal`
+- **Access Modifier**: Interface must be `public` if used in controller constructor, implementation is `internal`
 - **Purpose**: Contains business logic for the feature
 
 #### 3. Aggregate Root (Internal)
@@ -96,7 +96,13 @@ Each feature MUST contain the following components:
 - **Access Modifier**: `internal`
 - **Purpose**: Handles data persistence for the feature
 
-#### 5. Installer (Public)
+#### 5. DbContext (Internal) - If Feature Requires Database Persistence
+- **Name**: `[FeatureName]DbContext` (e.g., `OrdersDbContext`)
+- **Access Modifier**: `internal`
+- **Purpose**: Manages database operations and entity configuration
+- **Note**: See "Database Migrations Strategy" section for detailed requirements
+
+#### 6. Installer (Public)
 - **Name**: `[FeatureName]Installer` (e.g., `OrdersInstaller`)
 - **Access Modifier**: `public` class with `public` extension method
 - **Extension Method**: `Add[FeatureName](this IServiceCollection services, IConfiguration configuration)`
@@ -112,15 +118,29 @@ Each feature MUST contain the following components:
           this IServiceCollection services,
           IConfiguration configuration)
       {
+          // Register DbContext if needed
+          services.AddDbContext<OrdersDbContext>(options =>
+              options.UseNpgsql(
+                  configuration.GetConnectionString("DefaultConnection"),
+                  b => b.MigrationsHistoryTable("__EFMigrationsHistory", "orders")));
+
           // Register services
           services.AddScoped<IOrders, Orders>();
           services.AddScoped<IOrdersRepository, OrdersRepository>();
 
-          // Configure database if needed
-          var connectionString = configuration.GetConnectionString("OrdersDb");
-          // Additional configuration...
-
           return services;
+      }
+
+      // Include migration method if feature uses database
+      public static void ApplyOrdersMigrations(this IServiceProvider serviceProvider)
+      {
+          using var scope = serviceProvider.CreateScope();
+          var context = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
+
+          if (context.Database.IsRelational())
+          {
+              context.Database.Migrate();
+          }
       }
   }
   ```
@@ -329,6 +349,233 @@ To integrate a new feature into `CopilotTest.WebApi`:
        .AddApplicationPart(typeof([FeatureName]Controller).Assembly);
    ```
 
+## Database Migrations Strategy
+
+Each feature maintains its own Entity Framework Core migrations to ensure clear domain boundaries and support independent evolution.
+
+### Migration Architecture Principles
+
+1. **Feature-Specific Schemas**: Each feature's database tables reside in a schema named after the feature (e.g., `orders` schema for Orders feature)
+2. **Isolated Migration History**: Each feature maintains its own migration history table within its schema
+3. **Independent Evolution**: Features can evolve their database schema independently without affecting other features
+4. **Microservice Readiness**: This approach facilitates future extraction of features into separate microservices with their own databases
+
+### Required Components for Migrations
+
+Each feature that requires database persistence MUST include:
+
+#### 1. DbContext (Internal)
+- **Name**: `[FeatureName]DbContext` (e.g., `OrdersDbContext`)
+- **Access Modifier**: `internal`
+- **Schema Configuration**: Must configure a default schema matching the feature name
+- **Example**:
+  ```csharp
+  internal class OrdersDbContext : DbContext
+  {
+      public OrdersDbContext(DbContextOptions<OrdersDbContext> options) : base(options)
+      {
+      }
+
+      internal DbSet<Order> Orders { get; set; }
+
+      protected override void OnModelCreating(ModelBuilder modelBuilder)
+      {
+          base.OnModelCreating(modelBuilder);
+
+          // Set default schema for this feature
+          modelBuilder.HasDefaultSchema("orders");
+
+          // Configure entities...
+      }
+  }
+  ```
+
+#### 2. Design-Time DbContext Factory (Internal)
+- **Name**: `[FeatureName]DbContextFactory` (e.g., `OrdersDbContextFactory`)
+- **Purpose**: Enables EF Core tools to create DbContext instances at design time
+- **Access Modifier**: `internal`
+- **Example**:
+  ```csharp
+  internal class OrdersDbContextFactory : IDesignTimeDbContextFactory<OrdersDbContext>
+  {
+      public OrdersDbContext CreateDbContext(string[] args)
+      {
+          var optionsBuilder = new DbContextOptionsBuilder<OrdersDbContext>();
+
+          optionsBuilder.UseNpgsql(
+              "Host=localhost;Database=copilottestdb;Username=copilottest;Password=copilottest",
+              b => b.MigrationsHistoryTable("__EFMigrationsHistory", "orders"));
+
+          return new OrdersDbContext(optionsBuilder.Options);
+      }
+  }
+  ```
+
+#### 3. Migration Registration in Installer
+The installer must:
+- Register the DbContext with the migrations history table in the feature's schema
+- Provide a method to apply migrations at application startup
+
+**Example**:
+```csharp
+public static class OrdersInstaller
+{
+    public static IServiceCollection AddOrders(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // Register DbContext with schema-specific migration history
+        services.AddDbContext<OrdersDbContext>(options =>
+            options.UseNpgsql(
+                configuration.GetConnectionString("DefaultConnection"),
+                b => b.MigrationsHistoryTable("__EFMigrationsHistory", "orders")));
+
+        // Register other services...
+
+        return services;
+    }
+
+    public static void ApplyOrdersMigrations(this IServiceProvider serviceProvider)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
+
+        // Only apply migrations for relational databases (skip in-memory for tests)
+        if (context.Database.IsRelational())
+        {
+            context.Database.Migrate();
+        }
+    }
+}
+```
+
+#### 4. Required NuGet Packages
+Add to the feature project's `.csproj`:
+```xml
+<ItemGroup>
+  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
+    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    <PrivateAssets>all</PrivateAssets>
+  </PackageReference>
+  <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+</ItemGroup>
+```
+
+### Creating and Managing Migrations
+
+#### Creating a New Migration
+From the root directory of the repository:
+```bash
+cd src/Features/[FeatureName]/CopilotTest.[FeatureName]
+dotnet ef migrations add [MigrationName] --context [FeatureName]DbContext
+```
+
+Example for Orders feature:
+```bash
+cd src/Features/Orders/CopilotTest.Orders
+dotnet ef migrations add InitialCreate --context OrdersDbContext
+```
+
+#### Applying Migrations
+Migrations are automatically applied at application startup via the `Apply[FeatureName]Migrations()` method called in Program.cs:
+
+```csharp
+var app = builder.Build();
+
+// Apply migrations for all features
+app.Services.ApplyOrdersMigrations();
+// Add more feature migrations as needed
+
+app.Run();
+```
+
+#### Removing the Last Migration
+```bash
+cd src/Features/[FeatureName]/CopilotTest.[FeatureName]
+dotnet ef migrations remove --context [FeatureName]DbContext
+```
+
+### Integration with Main API
+
+To enable migrations for a feature in the main API:
+
+1. **Register the feature** (already required):
+   ```csharp
+   builder.Services.AddOrders(builder.Configuration);
+   ```
+
+2. **Apply migrations at startup**:
+   ```csharp
+   app.Services.ApplyOrdersMigrations();
+   ```
+
+### Testing Considerations
+
+When writing integration tests:
+
+1. **Replace DbContext with In-Memory Database**: Test infrastructure should replace the PostgreSQL DbContext with an in-memory version
+2. **Use InternalsVisibleTo**: Add `AssemblyInfo.cs` to expose internal DbContext to test projects:
+   ```csharp
+   using System.Runtime.CompilerServices;
+
+   [assembly: InternalsVisibleTo("CopilotTest.WebApi.HealthTests")]
+   ```
+
+3. **Example Test Configuration**:
+   ```csharp
+   public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+   {
+       protected override void ConfigureWebHost(IWebHostBuilder builder)
+       {
+           builder.ConfigureServices(services =>
+           {
+               // Remove PostgreSQL DbContext
+               var descriptor = services.SingleOrDefault(
+                   d => d.ServiceType == typeof(DbContextOptions<OrdersDbContext>));
+               if (descriptor != null)
+                   services.Remove(descriptor);
+
+               // Add in-memory database
+               services.AddDbContext<OrdersDbContext>(options =>
+                   options.UseInMemoryDatabase("TestOrdersDb"));
+           });
+       }
+   }
+   ```
+
+### Migration File Structure
+
+Each feature's migrations are stored within the feature project:
+
+```
+src/Features/Orders/CopilotTest.Orders/
+├── Migrations/
+│   ├── 20260312160744_InitialCreate.cs
+│   ├── 20260312160744_InitialCreate.Designer.cs
+│   └── OrdersDbContextModelSnapshot.cs
+├── OrdersDbContext.cs
+├── OrdersDbContextFactory.cs
+└── OrdersInstaller.cs
+```
+
+### Benefits of This Approach
+
+1. **Clear Boundaries**: Each feature owns its data schema and evolution
+2. **Independent Development**: Teams can work on features without database conflicts
+3. **Microservice Ready**: Easy to extract features with their database schema
+4. **Version Control**: Each feature's database changes are tracked in its own directory
+5. **Rollback Capability**: Feature-specific migrations can be rolled back independently
+6. **Testing Flexibility**: Features can be tested in isolation with independent databases
+
+### Best Practices
+
+1. **Never Share Tables Between Features**: Each feature should own its tables completely
+2. **Use Schemas for Isolation**: Always configure a feature-specific schema in DbContext
+3. **Consistent Naming**: Use lowercase with underscores for PostgreSQL (e.g., `customer_name`)
+4. **Migration History Isolation**: Always specify `MigrationsHistoryTable` with the feature's schema
+5. **Design-Time Factory**: Always provide a factory for EF Core tools
+6. **Relational Check**: Always check `IsRelational()` before applying migrations to avoid errors in tests
+
 ## Testing Guidelines
 
 - Write unit tests for domain logic
@@ -341,17 +588,26 @@ To integrate a new feature into `CopilotTest.WebApi`:
 
 ## Example Feature Structure
 
-For a feature called "Orders":
+For a feature called "Orders" with database persistence:
 
 ```
 src/Features/Orders/CopilotTest.Orders/
 ├── OrdersController.cs              # public
-├── IOrders.cs                        # internal
+├── IOrders.cs                        # public (interface in controller constructor)
 ├── Orders.cs                         # internal
 ├── Order.cs                          # internal (aggregate root)
+├── OrderDto.cs                       # public (API contract)
+├── CreateOrderRequest.cs            # public (API contract)
 ├── IOrdersRepository.cs             # internal
 ├── OrdersRepository.cs              # internal
-└── OrdersInstaller.cs               # public
+├── OrdersDbContext.cs               # internal
+├── OrdersDbContextFactory.cs        # internal
+├── OrdersInstaller.cs               # public
+├── AssemblyInfo.cs                  # for InternalsVisibleTo
+└── Migrations/
+    ├── 20260312160744_InitialCreate.cs
+    ├── 20260312160744_InitialCreate.Designer.cs
+    └── OrdersDbContextModelSnapshot.cs
 ```
 
 ## Summary
