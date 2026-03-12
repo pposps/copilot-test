@@ -307,6 +307,7 @@ Each feature is a **bounded context**:
 - **Null Safety**: Leverage nullable reference types
 - **Error Handling**: Use appropriate exception handling and validation
 - **Logging**: Implement structured logging for observability
+- **Collection Wrappers**: public API shouldn't return collections like IEnumerable<Order>, it should return collection wrapper like: OrdersCollection where OrdersCollection class have IEnumerable<Order> Orders property.
 
 ## Integration with Main API
 
