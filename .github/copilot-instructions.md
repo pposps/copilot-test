@@ -167,6 +167,7 @@ Each feature is a **bounded context**:
 - **Error Handling**: Use appropriate exception handling and validation
 - **Logging**: Implement structured logging for observability
 - **Collection Wrappers**: public API shouldn't return collections like IEnumerable<Order>, it should return collection wrapper like: OrdersCollection where OrdersCollection class have IEnumerable<Order> Orders property.
+- **Encapsulation**: when possible use internal or private access modfier. 
 
 ## Integration with Main API
 
