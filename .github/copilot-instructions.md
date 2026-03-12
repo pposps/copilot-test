@@ -65,9 +65,8 @@ When creating a new feature (e.g., "Orders"), follow these steps:
 
 Each feature MUST contain the following components:
 
-#### 1. Controller (Public)
+#### 1. Controller
 - **Name**: `[FeatureName]Controller` (e.g., `OrdersController`)
-- **Access Modifier**: `public`
 - **Purpose**: Exposes HTTP endpoints for the feature
 - **Injection**: Controller is registered in `CopilotTest.WebApi` Program.cs
 - **Example**:
@@ -78,27 +77,23 @@ Each feature MUST contain the following components:
   }
   ```
 
-#### 2. Feature Service (Internal)
+#### 2. Feature Service
 - **Interface**: `I[FeatureName]` (e.g., `IOrders`)
 - **Implementation**: `[FeatureName]` (e.g., `Orders`)
-- **Access Modifier**: `internal`
 - **Purpose**: Contains business logic for the feature
 
-#### 3. Aggregate Root (Internal)
+#### 3. Aggregate Root
 - **Name**: `[FeatureNameSingular]` (e.g., `Order` for Orders feature)
-- **Access Modifier**: `internal`
 - **Purpose**: Represents the aggregate root in DDD terms
 - **Responsibility**: Encapsulates domain logic and maintains consistency boundaries
 
-#### 4. Repository (Internal)
+#### 4. Repository
 - **Interface**: `I[FeatureName]Repository` (e.g., `IOrdersRepository`)
 - **Implementation**: `[FeatureName]Repository` (e.g., `OrdersRepository`)
-- **Access Modifier**: `internal`
 - **Purpose**: Handles data persistence for the feature
 
-#### 5. Installer (Public)
+#### 5. Installer
 - **Name**: `[FeatureName]Installer` (e.g., `OrdersInstaller`)
-- **Access Modifier**: `public` class with `public` extension method
 - **Extension Method**: `Add[FeatureName](this IServiceCollection services, IConfiguration configuration)`
 - **Purpose**: Registers all feature interfaces and implementations with dependency injection
 - **Parameters**:
@@ -124,142 +119,6 @@ Each feature MUST contain the following components:
       }
   }
   ```
-
-### Access Modifier Rules
-
-**Default Rule**: All internal components (services, repositories, aggregate roots, DbContext) should use `internal` access modifier to maintain proper encapsulation within the bounded context.
-
-**Public Components**: Only the following MUST be `public`:
-- Controllers (need to be discovered by ASP.NET Core)
-- Installer classes and their extension methods (need to be accessible from the main API project)
-
-#### Exception: Public Contract Types Rule
-
-**CRITICAL EXCEPTION TO INTERNAL RULE**: Any type that is part of the **public API contract** MUST be `public`.
-
-**Definition of Public Contract**: A type is part of the public API contract if it:
-1. Is directly returned from a public method of a public class (actual return type, not wrapped in `IActionResult`)
-2. Is a parameter of a public method of a public class (excluding infrastructure types injected via DI)
-3. Is exposed through public properties or fields of a public class
-4. Appears as a generic type argument in any of the above scenarios
-
-**Examples of Public Contract Types**:
-
-```csharp
-// Example 1: DTO returned directly
-public class OrdersController : ControllerBase
-{
-    // OrderDto is part of public contract - it MUST be public
-    [HttpGet]
-    public ActionResult<OrderDto> GetOrder(int id)
-    {
-        return new OrderDto { Id = id, Name = "Order 1" };
-    }
-}
-
-public class OrderDto { } // MUST be public - it's in the contract
-```
-
-```csharp
-// Example 2: Request model as parameter
-public class OrdersController : ControllerBase
-{
-    // CreateOrderRequest is part of public contract - it MUST be public
-    [HttpPost]
-    public IActionResult CreateOrder([FromBody] CreateOrderRequest request)
-    {
-        // implementation
-        return Ok();
-    }
-}
-
-public class CreateOrderRequest { } // MUST be public - it's in the contract
-```
-
-```csharp
-// Example 3: Generic type arguments
-public class OrdersController : ControllerBase
-{
-    // PagedResult<OrderDto> means OrderDto is in public contract
-    [HttpGet("list")]
-    public ActionResult<PagedResult<OrderDto>> GetOrders()
-    {
-        return new PagedResult<OrderDto>();
-    }
-}
-
-public class OrderDto { } // MUST be public
-public class PagedResult<T> { } // MUST be public
-```
-
-**NOT Part of Public Contract**:
-
-```csharp
-// Infrastructure types injected via DI are NOT part of contract
-public class OrdersController : ControllerBase
-{
-    // IOrdersService, ILogger can remain internal - they're infrastructure
-    private readonly IOrdersService _ordersService;
-    private readonly ILogger<OrdersController> _logger;
-
-    public OrdersController(IOrdersService ordersService, ILogger<OrdersController> logger)
-    {
-        _ordersService = ordersService; // Not exposed externally
-        _logger = logger; // Not exposed externally
-    }
-}
-
-internal interface IOrdersService { } // Can be internal - not in public contract
-```
-
-```csharp
-// Types only used internally (not returned or accepted) are NOT part of contract
-public class OrdersController : ControllerBase
-{
-    [HttpGet]
-    public IActionResult GetOrder(int id)
-    {
-        // Even though we create InternalOrderEntity, it's not in the signature
-        var order = new InternalOrderEntity();
-
-        // We convert to DTO before returning
-        return Ok(new { Id = order.Id, Name = order.Name });
-    }
-}
-
-internal class InternalOrderEntity { } // Can be internal - not directly exposed
-```
-
-**Special Case - Minimal APIs**:
-
-In ASP.NET Minimal APIs (like `app.MapGet`), similar rules apply:
-- Types in the delegate signature that are part of the API contract (returned or accepted from HTTP) MUST be public
-- Infrastructure types injected from DI (like `DbContext`, services) can remain internal
-
-```csharp
-// Minimal API example
-app.MapGet("/orders/{id}",
-    async (int id, IOrdersService ordersService) => // IOrdersService can be internal
-{
-    var order = await ordersService.GetOrderAsync(id);
-    return Results.Ok(new OrderDto { Id = order.Id }); // OrderDto MUST be public if returned
-});
-
-internal interface IOrdersService { } // OK - injected via DI
-public class OrderDto { } // MUST be public - returned to HTTP clients
-```
-
-**Summary for AI Agents**:
-1. **Start with internal by default** for all domain and infrastructure types
-2. **Make it public** if and only if:
-   - It's a Controller or Installer class, OR
-   - It's directly exposed in the public API contract (returned to or accepted from HTTP clients)
-3. **Keep it internal** if it's only used for:
-   - Dependency injection (services, repositories, DbContext)
-   - Internal implementation details
-   - Data transformation (entity to DTO conversion)
-
-This ensures proper encapsulation while maintaining a valid public API surface.
 
 ## Development Principles
 
@@ -345,13 +204,13 @@ For a feature called "Orders":
 
 ```
 src/Features/Orders/CopilotTest.Orders/
-├── OrdersController.cs              # public
-├── IOrders.cs                        # internal
-├── Orders.cs                         # internal
-├── Order.cs                          # internal (aggregate root)
-├── IOrdersRepository.cs             # internal
-├── OrdersRepository.cs              # internal
-└── OrdersInstaller.cs               # public
+├── OrdersController.cs
+├── IOrders.cs
+├── Orders.cs
+├── Order.cs                          # aggregate root
+├── IOrdersRepository.cs
+├── OrdersRepository.cs
+└── OrdersInstaller.cs
 ```
 
 ## Summary
