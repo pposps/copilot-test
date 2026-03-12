@@ -15,8 +15,4 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Features\Orders\CopilotTest.Orders\CopilotTest.Orders.csproj" />
-  </ItemGroup>
-
 </Project>

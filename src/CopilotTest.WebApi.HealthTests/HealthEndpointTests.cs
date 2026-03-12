@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using CopilotTest.WebApi;
-using CopilotTest.Orders;
 
 namespace CopilotTest.WebApi.HealthTests;
 
@@ -60,9 +59,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 .Where(d => d.ServiceType.Namespace != null &&
                        (d.ServiceType.Namespace.StartsWith("Microsoft.EntityFrameworkCore") ||
                         d.ServiceType == typeof(WebApiHealthDbContext) ||
-                        d.ServiceType == typeof(DbContextOptions<WebApiHealthDbContext>) ||
-                        d.ServiceType == typeof(OrdersDbContext) ||
-                        d.ServiceType == typeof(DbContextOptions<OrdersDbContext>)))
+                        d.ServiceType == typeof(DbContextOptions<WebApiHealthDbContext>)))
                 .ToList();
 
             foreach (var descriptor in descriptorsToRemove)
@@ -74,12 +71,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddDbContext<WebApiHealthDbContext>(options =>
             {
                 options.UseInMemoryDatabase("TestHealthDb");
-            });
-
-            // Add in-memory database for Orders feature
-            services.AddDbContext<OrdersDbContext>(options =>
-            {
-                options.UseInMemoryDatabase("TestOrdersDb");
             });
         });
     }
