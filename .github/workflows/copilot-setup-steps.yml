@@ -45,7 +45,7 @@ jobs:
       - name: Database information
         run: |
           echo "PostgreSQL database is available for Copilot agents"
-          echo "Connection string: Host=localhost;Port=5432;Database=copilottestdb;Username=copilottest;Password=copilottest"
+          echo "Connection string (without password): Host=localhost;Port=5432;Database=copilottestdb;Username=copilottest"
 
       - name: Cleanup
         if: always()
