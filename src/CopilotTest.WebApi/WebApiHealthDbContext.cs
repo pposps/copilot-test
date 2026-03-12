@@ -14,6 +14,9 @@ internal class WebApiHealthDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // Set default schema for WebApi feature
+        modelBuilder.HasDefaultSchema("WebApi");
+
         modelBuilder.Entity<Health>(entity =>
         {
             entity.ToTable("health");
