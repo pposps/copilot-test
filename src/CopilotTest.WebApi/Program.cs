@@ -9,7 +9,11 @@ builder.Services.AddOpenApi();
 
 // Add DbContext
 builder.Services.AddDbContext<WebApiHealthDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsqlOptions => npgsqlOptions.MigrationsHistoryTable(
+            "__EFMigrationsHistory",
+            "Health")));
 
 var app = builder.Build();
 
