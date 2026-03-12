@@ -33,17 +33,18 @@ public class HealthEndpointTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task HealthEndpoint_ReturnsOkStatus()
+    public async Task HealthEndpoint_ReturnsUnknownWhenDatabaseIsEmpty()
     {
-        // Arrange
-        await _factory.SeedDatabaseAsync();
+        // Arrange - don't seed the database
         var client = _factory.CreateClient();
 
         // Act
         var response = await client.GetAsync("/health");
 
         // Assert
-        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.Equal("\"unknown\"", content);
     }
 }
 
