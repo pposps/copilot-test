@@ -131,6 +131,39 @@ Each feature MUST contain the following components:
 - **Internal**: All other components (services, repositories, aggregate roots)
   - Note: Extension methods in installer classes are also `public`
 
+#### Public Signature Visibility Rule
+
+**Important**: Any class that appears in the signature of a public method of a public class MUST be `public`.
+
+This includes:
+- Return types of public methods
+- Parameter types of public methods
+- Generic type arguments in public method signatures
+
+**Example violation**:
+```csharp
+public class MyController : ControllerBase
+{
+    // WRONG: InternalDto is internal but appears in public method signature
+    public IActionResult GetData() => Ok(new InternalDto());
+}
+
+internal class InternalDto { } // This violates the rule
+```
+
+**Correct approach**:
+```csharp
+public class MyController : ControllerBase
+{
+    // CORRECT: PublicDto is public and can appear in public method signature
+    public IActionResult GetData() => Ok(new PublicDto());
+}
+
+public class PublicDto { } // This is correct
+```
+
+**Exception for Minimal APIs**: In ASP.NET Minimal APIs (like `app.MapGet`), the endpoint delegates are not public methods of a public class, so their parameter types can remain internal if they are only used within the application and not exposed through the API contract (e.g., dependency injection parameters like `DbContext`).
+
 ## Development Principles
 
 ### SOLID Principles
