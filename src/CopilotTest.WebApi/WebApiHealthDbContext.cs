@@ -2,13 +2,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CopilotTest.WebApi;
 
-public class WebApiHealthDbContext : DbContext
+internal class WebApiHealthDbContext : DbContext
 {
     public WebApiHealthDbContext(DbContextOptions<WebApiHealthDbContext> options) : base(options)
     {
     }
 
-    public DbSet<Health> Health { get; set; }
+    internal DbSet<Health> Health { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
