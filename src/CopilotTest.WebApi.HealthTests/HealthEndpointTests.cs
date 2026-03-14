@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using CopilotTest.WebApi;
 
@@ -52,27 +53,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.ConfigureServices(services =>
-        {
-            // Remove all EF Core service descriptors to completely clear out PostgreSQL provider
-            var descriptorsToRemove = services
-                .Where(d => d.ServiceType.Namespace != null &&
-                       (d.ServiceType.Namespace.StartsWith("Microsoft.EntityFrameworkCore") ||
-                        d.ServiceType == typeof(WebApiHealthDbContext) ||
-                        d.ServiceType == typeof(DbContextOptions<WebApiHealthDbContext>)))
-                .ToList();
-
-            foreach (var descriptor in descriptorsToRemove)
-            {
-                services.Remove(descriptor);
-            }
-
-            // Add in-memory database for testing
-            services.AddDbContext<WebApiHealthDbContext>(options =>
-            {
-                options.UseInMemoryDatabase("TestHealthDb");
-            });
-        });
+        builder.UseSetting("UseInMemoryDatabase", "true");
     }
 
     public async Task SeedDatabaseAsync()
