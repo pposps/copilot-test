@@ -270,8 +270,6 @@ internal class OrdersDbContext : DbContext
 }
 ```
 
-**Access Modifier**: DbContext classes MUST be `internal`
-
 #### 2. Design-Time DbContext Factory
 
 Each feature DbContext REQUIRES a design-time factory for EF Core tools to work:
@@ -300,8 +298,6 @@ internal class OrdersDbContextFactory : IDesignTimeDbContextFactory<OrdersDbCont
 ```
 
 **Purpose**: Enables EF Core CLI tools to instantiate the DbContext without running the application
-
-**Access Modifier**: Factory classes MUST be `internal`
 
 #### 3. Migration Generation
 
