@@ -7,13 +7,23 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-// Add DbContext
-builder.Services.AddDbContext<WebApiHealthDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        npgsqlOptions => npgsqlOptions.MigrationsHistoryTable(
-            "__EFMigrationsHistory",
-            "Health")));
+// Add DbContext with conditional provider selection for testing
+var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
+
+if (useInMemory)
+{
+    builder.Services.AddDbContext<WebApiHealthDbContext>(options =>
+        options.UseInMemoryDatabase("TestHealthDb"));
+}
+else
+{
+    builder.Services.AddDbContext<WebApiHealthDbContext>(options =>
+        options.UseNpgsql(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+            npgsqlOptions => npgsqlOptions.MigrationsHistoryTable(
+                "__EFMigrationsHistory",
+                "Health")));
+}
 
 var app = builder.Build();
 
