@@ -265,7 +265,7 @@ internal class OrdersDbContext : DbContext
 
         // Isolate migration history per feature
         optionsBuilder.UseNpgsql(b =>
-            b.MigrationsHistoryTable("__EFMigrationsHistory", "Orders"));
+            b.MigrationsHistoryTable("__EFMigrationsHistory_Orders", "Orders"));
     }
 }
 ```
