@@ -12,7 +12,7 @@ builder.Services.AddDbContext<WebApiHealthDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         npgsqlOptions => npgsqlOptions.MigrationsHistoryTable(
-            "__EFMigrationsHistory",
+            "__EFMigrationsHistory_WebApiHealth",
             "Health")));
 
 var app = builder.Build();
