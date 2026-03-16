@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using CopilotTest.WebApi;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using System.Data.Common;
 
 namespace CopilotTest.WebApi.HealthTests;
 
@@ -56,16 +58,17 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             // Remove all DbContext-related service descriptors
-            var descriptorsToRemove = services
-                .Where(d => d.ServiceType == typeof(DbContextOptions<WebApiHealthDbContext>) ||
-                           d.ServiceType == typeof(DbContextOptions) ||
-                           d.ServiceType == typeof(WebApiHealthDbContext))
-                .ToList();
+            var dbContextDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == 
+                    typeof(IDbContextOptionsConfiguration<WebApiHealthDbContext>));
 
-            foreach (var descriptor in descriptorsToRemove)
-            {
-                services.Remove(descriptor);
-            }
+            services.Remove(dbContextDescriptor);
+
+            var dbConnectionDescriptor = services.SingleOrDefault(
+                d => d.ServiceType ==
+                    typeof(DbConnection));
+            
+            services.Remove(dbConnectionDescriptor);
 
             // Add in-memory database for testing with application service provider
             services.AddDbContext<WebApiHealthDbContext>((sp, options) =>
