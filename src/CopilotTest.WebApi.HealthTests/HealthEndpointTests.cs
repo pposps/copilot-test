@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using CopilotTest.WebApi;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using System.Data.Common;
 
 namespace CopilotTest.WebApi.HealthTests;
 
@@ -54,23 +57,30 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.ConfigureServices(services =>
         {
-            // Remove all EF Core service descriptors to completely clear out PostgreSQL provider
-            var descriptorsToRemove = services
-                .Where(d => d.ServiceType.Namespace != null &&
-                       (d.ServiceType.Namespace.StartsWith("Microsoft.EntityFrameworkCore") ||
-                        d.ServiceType == typeof(WebApiHealthDbContext) ||
-                        d.ServiceType == typeof(DbContextOptions<WebApiHealthDbContext>)))
-                .ToList();
+            // Remove all DbContext-related service descriptors
+            var dbContextDescriptor = services.SingleOrDefault(
+                d => d.ServiceType ==
+                    typeof(IDbContextOptionsConfiguration<WebApiHealthDbContext>));
 
-            foreach (var descriptor in descriptorsToRemove)
+            if (dbContextDescriptor != null)
             {
-                services.Remove(descriptor);
+                services.Remove(dbContextDescriptor);
             }
 
-            // Add in-memory database for testing
-            services.AddDbContext<WebApiHealthDbContext>(options =>
+            var dbConnectionDescriptor = services.SingleOrDefault(
+                d => d.ServiceType ==
+                    typeof(DbConnection));
+
+            if (dbConnectionDescriptor != null)
             {
-                options.UseInMemoryDatabase("TestHealthDb");
+                services.Remove(dbConnectionDescriptor);
+            }
+
+            // Add in-memory database for testing with application service provider
+            services.AddDbContext<WebApiHealthDbContext>((sp, options) =>
+            {
+                options.UseInMemoryDatabase("TestHealthDb")
+                       .UseApplicationServiceProvider(sp);
             });
         });
     }
@@ -79,8 +89,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<WebApiHealthDbContext>();
-        await db.Database.EnsureCreatedAsync();
 
+        await db.Database.EnsureCreatedAsync();
+        
         if (!await db.Health.AnyAsync())
         {
             db.Health.Add(new Health { Status = "healthy" });
