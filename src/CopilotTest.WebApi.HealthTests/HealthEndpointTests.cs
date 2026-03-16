@@ -89,7 +89,17 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<WebApiHealthDbContext>();
-        await db.Database.EnsureCreatedAsync();
+
+        // InMemory database doesn't support migrations, so use EnsureCreated
+        // For relational databases, migrations would be used
+        if (db.Database.IsInMemory())
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
+        else
+        {
+            await db.Database.MigrateAsync();
+        }
 
         if (!await db.Health.AnyAsync())
         {
