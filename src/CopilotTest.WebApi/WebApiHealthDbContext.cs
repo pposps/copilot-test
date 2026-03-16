@@ -14,7 +14,6 @@ internal class WebApiHealthDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure schema for this bounded context
         modelBuilder.HasDefaultSchema("Health");
 
         modelBuilder.Entity<Health>(entity =>
