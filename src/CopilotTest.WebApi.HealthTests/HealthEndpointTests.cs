@@ -59,16 +59,22 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             // Remove all DbContext-related service descriptors
             var dbContextDescriptor = services.SingleOrDefault(
-                d => d.ServiceType == 
+                d => d.ServiceType ==
                     typeof(IDbContextOptionsConfiguration<WebApiHealthDbContext>));
 
-            services.Remove(dbContextDescriptor);
+            if (dbContextDescriptor != null)
+            {
+                services.Remove(dbContextDescriptor);
+            }
 
             var dbConnectionDescriptor = services.SingleOrDefault(
                 d => d.ServiceType ==
                     typeof(DbConnection));
-            
-            services.Remove(dbConnectionDescriptor);
+
+            if (dbConnectionDescriptor != null)
+            {
+                services.Remove(dbConnectionDescriptor);
+            }
 
             // Add in-memory database for testing with application service provider
             services.AddDbContext<WebApiHealthDbContext>((sp, options) =>
