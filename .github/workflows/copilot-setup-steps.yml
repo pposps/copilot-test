@@ -17,6 +17,10 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+          
+      - name: Install EF Tool
+        run: |
+          dotnet tool install --global dotnet-ef
 
       - name: Start PostgreSQL with docker-compose
         run: |
