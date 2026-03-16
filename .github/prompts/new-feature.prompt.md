@@ -224,7 +224,7 @@ internal class [FeatureName]DbContext : DbContext
     {
         base.OnConfiguring(optionsBuilder);
         optionsBuilder.UseNpgsql(b =>
-            b.MigrationsHistoryTable("__EFMigrationsHistory", "[FeatureName]"));
+            b.MigrationsHistoryTable("__EFMigrationsHistory_[FeatureName]", "[FeatureName]"));
     }
 }
 ```
