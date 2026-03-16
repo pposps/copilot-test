@@ -53,7 +53,27 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseSetting("UseInMemoryDatabase", "true");
+        builder.ConfigureServices(services =>
+        {
+            // Remove all DbContext-related service descriptors
+            var descriptorsToRemove = services
+                .Where(d => d.ServiceType == typeof(DbContextOptions<WebApiHealthDbContext>) ||
+                           d.ServiceType == typeof(DbContextOptions) ||
+                           d.ServiceType == typeof(WebApiHealthDbContext))
+                .ToList();
+
+            foreach (var descriptor in descriptorsToRemove)
+            {
+                services.Remove(descriptor);
+            }
+
+            // Add in-memory database for testing with application service provider
+            services.AddDbContext<WebApiHealthDbContext>((sp, options) =>
+            {
+                options.UseInMemoryDatabase("TestHealthDb")
+                       .UseApplicationServiceProvider(sp);
+            });
+        });
     }
 
     public async Task SeedDatabaseAsync()
