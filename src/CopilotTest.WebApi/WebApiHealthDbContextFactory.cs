@@ -9,7 +9,6 @@ internal class WebApiHealthDbContextFactory : IDesignTimeDbContextFactory<WebApi
     {
         var optionsBuilder = new DbContextOptionsBuilder<WebApiHealthDbContext>();
 
-        // Use connection string from environment or default
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
 
         optionsBuilder.UseNpgsql(connectionString, options =>
